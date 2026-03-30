@@ -1,0 +1,489 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TimeTracker Pro</title>
+    <style>
+        *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap');
+
+        body {
+            font-family: 'Inter', -apple-system, sans-serif;
+            background: transparent;
+            color: #e2e8f0;
+            overflow: hidden;
+            user-select: none;
+        }
+
+        .window {
+            width: 100vw;
+            height: 100vh;
+            background: linear-gradient(160deg, #0f0f1e 0%, #12102a 40%, #0e1525 100%);
+            border-radius: 16px;
+            border: 1px solid rgba(255,255,255,0.07);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+        }
+
+        /* Titlebar */
+        .titlebar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 10px 14px;
+            -webkit-app-region: drag;
+            border-bottom: 1px solid rgba(255,255,255,0.05);
+        }
+
+        .titlebar-left {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .titlebar-icon {
+            width: 22px;
+            height: 22px;
+            background: linear-gradient(135deg, #00d4ff, #7c3aed);
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .titlebar-icon svg { width: 13px; height: 13px; }
+
+        .titlebar-text {
+            font-size: 12px;
+            font-weight: 600;
+            color: #94a3b8;
+        }
+
+        .titlebar-btns {
+            display: flex;
+            gap: 4px;
+            -webkit-app-region: no-drag;
+        }
+
+        .titlebar-btn {
+            background: none;
+            border: none;
+            color: #64748b;
+            width: 22px;
+            height: 22px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        .titlebar-btn:hover { background: rgba(255,255,255,0.08); color: #e2e8f0; }
+        .titlebar-btn.close:hover { background: rgba(239,68,68,0.2); color: #ef4444; }
+
+        /* Timer Section */
+        .timer-section {
+            text-align: center;
+            padding: 28px 20px 16px;
+        }
+
+        .timer-display {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 52px;
+            font-weight: 600;
+            color: #e2e8f0;
+            letter-spacing: 3px;
+            margin-bottom: 6px;
+            transition: all 0.3s;
+        }
+
+        .timer-display.running {
+            color: #00d4ff;
+            text-shadow: 0 0 40px rgba(0,212,255,0.3);
+        }
+
+        .project-label {
+            font-size: 13px;
+            color: #64748b;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            min-height: 20px;
+        }
+
+        .project-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+        }
+
+        /* Controls */
+        .controls {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 14px;
+            margin-bottom: 20px;
+        }
+
+        .timer-btn {
+            width: 56px;
+            height: 56px;
+            border-radius: 50%;
+            border: none;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s;
+        }
+        .timer-btn svg { width: 22px; height: 22px; }
+
+        .timer-btn.start {
+            background: linear-gradient(135deg, #10b981, #059669);
+            color: white;
+            box-shadow: 0 4px 20px rgba(16,185,129,0.3);
+        }
+        .timer-btn.start:hover { transform: scale(1.06); box-shadow: 0 6px 28px rgba(16,185,129,0.4); }
+
+        .timer-btn.stop {
+            background: linear-gradient(135deg, #ef4444, #dc2626);
+            color: white;
+            box-shadow: 0 4px 20px rgba(239,68,68,0.3);
+        }
+        .timer-btn.stop:hover { transform: scale(1.06); box-shadow: 0 6px 28px rgba(239,68,68,0.4); }
+
+        /* Inputs */
+        .inputs {
+            padding: 0 20px 16px;
+        }
+
+        .input-group {
+            margin-bottom: 10px;
+        }
+
+        .select-input, .text-input {
+            width: 100%;
+            padding: 10px 14px;
+            background: rgba(10,10,25,0.5);
+            border: 1px solid rgba(255,255,255,0.07);
+            border-radius: 10px;
+            color: #e2e8f0;
+            font-size: 13px;
+            font-family: inherit;
+            outline: none;
+            transition: all 0.2s;
+        }
+        .select-input:focus, .text-input:focus { border-color: #00d4ff; }
+        .select-input option { background: #1a1a30; }
+        .text-input::placeholder { color: #4a4a6a; }
+
+        /* Screenshot indicator */
+        .screenshot-indicator {
+            display: none;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            padding: 8px;
+            font-size: 11px;
+            color: #00d4ff;
+            background: rgba(0,212,255,0.08);
+            border-top: 1px solid rgba(0,212,255,0.1);
+        }
+        .screenshot-indicator.visible { display: flex; }
+
+        .screenshot-dot {
+            width: 6px;
+            height: 6px;
+            background: #00d4ff;
+            border-radius: 50%;
+            animation: blink 2s ease-in-out infinite;
+        }
+
+        @keyframes blink {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.3; }
+        }
+
+        /* Footer */
+        .footer {
+            margin-top: auto;
+            padding: 10px 16px;
+            border-top: 1px solid rgba(255,255,255,0.05);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .user-info {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 12px;
+            color: #94a3b8;
+        }
+
+        .user-avatar {
+            width: 24px;
+            height: 24px;
+            border-radius: 7px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 11px;
+            font-weight: 700;
+            color: white;
+        }
+
+        .footer-btns {
+            display: flex;
+            gap: 6px;
+        }
+
+        .footer-btn {
+            background: rgba(255,255,255,0.06);
+            border: none;
+            color: #94a3b8;
+            padding: 5px 10px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 11px;
+            font-family: inherit;
+            transition: all 0.2s;
+        }
+        .footer-btn:hover { background: rgba(255,255,255,0.1); color: #e2e8f0; }
+
+        /* Toast */
+        .toast {
+            position: fixed;
+            bottom: 60px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(16,185,129,0.15);
+            border: 1px solid rgba(16,185,129,0.3);
+            color: #6ee7b7;
+            padding: 8px 16px;
+            border-radius: 8px;
+            font-size: 12px;
+            display: none;
+            z-index: 100;
+        }
+        .toast.visible { display: block; animation: fadeInUp 0.2s ease; }
+        .toast.error { background: rgba(239,68,68,0.15); border-color: rgba(239,68,68,0.3); color: #fca5a5; }
+
+        @keyframes fadeInUp {
+            from { opacity: 0; transform: translateX(-50%) translateY(10px); }
+            to { opacity: 1; transform: translateX(-50%) translateY(0); }
+        }
+    </style>
+</head>
+<body>
+    <div class="window">
+        <div class="titlebar">
+            <div class="titlebar-left">
+                <div class="titlebar-icon">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                </div>
+                <span class="titlebar-text">TimeTracker Pro</span>
+            </div>
+            <div class="titlebar-btns">
+                <button class="titlebar-btn" onclick="window.ttApi.minimizeWindow()" title="Minimize">─</button>
+                <button class="titlebar-btn close" onclick="window.ttApi.closeWindow()" title="Close">✕</button>
+            </div>
+        </div>
+
+        <div class="timer-section">
+            <div class="timer-display" id="timer-display">00:00:00</div>
+            <div class="project-label" id="project-label"></div>
+            <div class="controls">
+                <button class="timer-btn start" id="start-btn" title="Start Timer">
+                    <svg viewBox="0 0 24 24" fill="currentColor" stroke="none"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+                </button>
+                <button class="timer-btn stop" id="stop-btn" title="Stop Timer" style="display:none">
+                    <svg viewBox="0 0 24 24" fill="currentColor" stroke="none"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>
+                </button>
+            </div>
+        </div>
+
+        <div class="inputs">
+            <div class="input-group">
+                <select class="select-input" id="project-select">
+                    <option value="">No Project</option>
+                </select>
+            </div>
+            <div class="input-group">
+                <input class="text-input" type="text" id="description" placeholder="What are you working on?">
+            </div>
+        </div>
+
+        <div class="screenshot-indicator" id="screenshot-indicator">
+            <span class="screenshot-dot"></span>
+            <span>Screenshots active</span>
+        </div>
+
+        <div class="footer">
+            <div class="user-info">
+                <div class="user-avatar" id="user-avatar" style="background:#7c3aed">A</div>
+                <span id="user-name">User</span>
+            </div>
+            <div class="footer-btns">
+                <button class="footer-btn" id="dashboard-btn">Dashboard</button>
+                <button class="footer-btn" id="logout-btn">Logout</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="toast" id="toast"></div>
+
+    <script>
+        const $ = (id) => document.getElementById(id);
+
+        // Show toast
+        function toast(msg, isError = false) {
+            const el = $('toast');
+            el.textContent = msg;
+            el.className = `toast visible ${isError ? 'error' : ''}`;
+            setTimeout(() => el.className = 'toast', 2500);
+        }
+
+        // Load user info
+        async function loadUser() {
+            const user = await window.ttApi.getStore('user');
+            if (user) {
+                $('user-name').textContent = user.name;
+                $('user-avatar').textContent = user.name[0].toUpperCase();
+                $('user-avatar').style.background = user.avatar_color || '#7c3aed';
+            }
+        }
+
+        // Load projects
+        async function loadProjects() {
+            const projects = await window.ttApi.getProjects();
+            const sel = $('project-select');
+            sel.innerHTML = '<option value="">No Project</option>';
+            for (const p of projects) {
+                const opt = document.createElement('option');
+                opt.value = p.id;
+                opt.textContent = p.name;
+                sel.appendChild(opt);
+            }
+        }
+
+        // Check status
+        async function checkStatus() {
+            const data = await window.ttApi.getStatus();
+            if (data.running) {
+                showRunning(data.running, data.settings);
+            }
+        }
+
+        function showRunning(entry, settings) {
+            $('start-btn').style.display = 'none';
+            $('stop-btn').style.display = 'flex';
+            $('timer-display').classList.add('running');
+            $('project-select').disabled = true;
+            $('description').disabled = true;
+
+            if (entry.project_id) $('project-select').value = entry.project_id;
+            if (entry.description) $('description').value = entry.description;
+
+            if (entry.project_name) {
+                $('project-label').innerHTML = `<span class="project-dot" style="background:${entry.project_color || '#3B82F6'}"></span>${entry.project_name}`;
+            }
+
+            if (settings && settings.screenshots_enabled === 'true') {
+                $('screenshot-indicator').classList.add('visible');
+            }
+
+            // Calculate current elapsed
+            const start = new Date(entry.start_time);
+            updateElapsed(start);
+        }
+
+        function updateElapsed(startTime) {
+            const elapsed = Math.floor((Date.now() - startTime.getTime()) / 1000);
+            const h = String(Math.floor(elapsed / 3600)).padStart(2, '0');
+            const m = String(Math.floor((elapsed % 3600) / 60)).padStart(2, '0');
+            const s = String(elapsed % 60).padStart(2, '0');
+            $('timer-display').textContent = `${h}:${m}:${s}`;
+        }
+
+        function resetUI() {
+            $('start-btn').style.display = 'flex';
+            $('stop-btn').style.display = 'none';
+            $('timer-display').classList.remove('running');
+            $('timer-display').textContent = '00:00:00';
+            $('project-label').innerHTML = '';
+            $('project-select').disabled = false;
+            $('description').disabled = false;
+            $('description').value = '';
+            $('screenshot-indicator').classList.remove('visible');
+        }
+
+        // Start timer
+        $('start-btn').addEventListener('click', async () => {
+            const projectId = $('project-select').value || null;
+            const description = $('description').value || '';
+            const result = await window.ttApi.startTimer(projectId, description);
+            if (result.success) {
+                showRunning(result.entry, {});
+                toast('Timer started');
+                checkStatus(); // Re-fetch full status for settings
+            } else {
+                toast(result.error, true);
+            }
+        });
+
+        // Stop timer
+        $('stop-btn').addEventListener('click', async () => {
+            const result = await window.ttApi.stopTimer();
+            if (result.success) {
+                resetUI();
+                const dur = result.data.duration;
+                const h = Math.floor(dur / 3600);
+                const m = Math.floor((dur % 3600) / 60);
+                toast(`Tracked ${h > 0 ? h + 'h ' : ''}${m}m`);
+            } else {
+                toast(result.error, true);
+            }
+        });
+
+        // Open dashboard
+        $('dashboard-btn').addEventListener('click', async () => {
+            const url = await window.ttApi.getServerUrl();
+            require = null; // Safety
+            window.open(url, '_blank');
+        });
+
+        // Logout
+        $('logout-btn').addEventListener('click', () => window.ttApi.logout());
+
+        // Listen for timer ticks from main process
+        window.ttApi.onTimerTick((elapsed) => {
+            $('timer-display').textContent = elapsed;
+        });
+
+        window.ttApi.onTimerUpdate((data) => {
+            if (data.running) checkStatus();
+            else resetUI();
+        });
+
+        window.ttApi.onScreenshotCaptured(() => {
+            $('screenshot-indicator').classList.add('visible');
+            // Brief flash
+            const ind = $('screenshot-indicator');
+            ind.style.background = 'rgba(0,212,255,0.15)';
+            setTimeout(() => ind.style.background = '', 500);
+        });
+
+        // Initialize
+        loadUser();
+        loadProjects();
+        checkStatus();
+    </script>
+</body>
+</html>

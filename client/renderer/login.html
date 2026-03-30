@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TimeTracker Pro — Login</title>
+    <style>
+        *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+        body {
+            font-family: 'Inter', -apple-system, sans-serif;
+            background: transparent;
+            color: #e2e8f0;
+            overflow: hidden;
+            user-select: none;
+        }
+
+        .window {
+            width: 100vw;
+            height: 100vh;
+            background: linear-gradient(145deg, #0f0f1e 0%, #1a0f2e 50%, #0f1428 100%);
+            border-radius: 16px;
+            border: 1px solid rgba(255,255,255,0.08);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .titlebar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 12px 16px;
+            -webkit-app-region: drag;
+        }
+
+        .titlebar-title {
+            font-size: 12px;
+            font-weight: 600;
+            color: #64748b;
+        }
+
+        .titlebar-close {
+            -webkit-app-region: no-drag;
+            background: none;
+            border: none;
+            color: #64748b;
+            cursor: pointer;
+            font-size: 16px;
+            width: 24px;
+            height: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 6px;
+        }
+        .titlebar-close:hover { background: rgba(239,68,68,0.2); color: #ef4444; }
+
+        .content {
+            flex: 1;
+            padding: 0 32px 32px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 8px;
+        }
+
+        .logo-icon {
+            width: 36px;
+            height: 36px;
+            background: linear-gradient(135deg, #00d4ff, #7c3aed);
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .logo-icon svg { width: 20px; height: 20px; }
+
+        .logo-text {
+            font-size: 18px;
+            font-weight: 700;
+            background: linear-gradient(135deg, #e2e8f0, #00d4ff);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .subtitle {
+            font-size: 13px;
+            color: #64748b;
+            margin-bottom: 28px;
+        }
+
+        .form-group {
+            width: 100%;
+            margin-bottom: 14px;
+        }
+
+        .form-label {
+            font-size: 12px;
+            color: #94a3b8;
+            margin-bottom: 6px;
+            display: block;
+            font-weight: 500;
+        }
+
+        .form-input {
+            width: 100%;
+            padding: 11px 14px;
+            background: rgba(10, 10, 20, 0.6);
+            border: 1px solid rgba(255,255,255,0.08);
+            border-radius: 10px;
+            color: #e2e8f0;
+            font-size: 14px;
+            font-family: inherit;
+            outline: none;
+            transition: all 0.2s;
+        }
+        .form-input::placeholder { color: #4a4a6a; }
+        .form-input:focus { border-color: #00d4ff; box-shadow: 0 0 0 2px rgba(0,212,255,0.1); }
+
+        .login-btn {
+            width: 100%;
+            padding: 12px;
+            background: linear-gradient(135deg, #00d4ff, #0099cc);
+            border: none;
+            border-radius: 10px;
+            color: white;
+            font-size: 14px;
+            font-weight: 600;
+            font-family: inherit;
+            cursor: pointer;
+            transition: all 0.2s;
+            margin-top: 6px;
+        }
+        .login-btn:hover { transform: translateY(-1px); box-shadow: 0 4px 20px rgba(0,212,255,0.3); }
+        .login-btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+
+        .error-msg {
+            width: 100%;
+            background: rgba(239,68,68,0.1);
+            border: 1px solid rgba(239,68,68,0.2);
+            color: #fca5a5;
+            padding: 10px 14px;
+            border-radius: 8px;
+            font-size: 12px;
+            margin-bottom: 12px;
+            display: none;
+        }
+
+        details {
+            width: 100%;
+            margin-top: 16px;
+        }
+        details summary {
+            font-size: 11px;
+            color: #4a4a6a;
+            cursor: pointer;
+        }
+        details .form-group { margin-top: 10px; }
+    </style>
+</head>
+<body>
+    <div class="window">
+        <div class="titlebar">
+            <span class="titlebar-title">TimeTracker Pro</span>
+            <button class="titlebar-close" onclick="window.close()">✕</button>
+        </div>
+        <div class="content">
+            <div class="logo">
+                <div class="logo-icon">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                </div>
+                <span class="logo-text">TimeTracker Pro</span>
+            </div>
+            <p class="subtitle">Connect to your workspace</p>
+
+            <div class="error-msg" id="error-msg"></div>
+
+            <form id="login-form" style="width:100%">
+                <div class="form-group">
+                    <label class="form-label">Server URL</label>
+                    <input class="form-input" type="url" id="server-url" value="http://localhost:3847" placeholder="http://your-server:3847">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Email</label>
+                    <input class="form-input" type="email" id="email" placeholder="admin@timetracker.local" required autofocus>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Password</label>
+                    <input class="form-input" type="password" id="password" placeholder="Enter password" required>
+                </div>
+                <button class="login-btn" type="submit" id="login-btn">Connect & Sign In</button>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        document.getElementById('login-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const btn = document.getElementById('login-btn');
+            const err = document.getElementById('error-msg');
+            err.style.display = 'none';
+
+            const serverUrl = document.getElementById('server-url').value.trim().replace(/\/$/, '');
+            const email = document.getElementById('email').value.trim();
+            const password = document.getElementById('password').value;
+
+            if (!serverUrl || !email || !password) {
+                err.textContent = 'All fields are required';
+                err.style.display = 'block';
+                return;
+            }
+
+            btn.disabled = true;
+            btn.textContent = 'Connecting...';
+
+            try {
+                const result = await window.ttApi.login(serverUrl, email, password);
+                if (!result.success) {
+                    throw new Error(result.error || 'Login failed');
+                }
+            } catch(e) {
+                err.textContent = e.message;
+                err.style.display = 'block';
+                btn.disabled = false;
+                btn.textContent = 'Connect & Sign In';
+            }
+        });
+
+        // Load saved server URL
+        (async () => {
+            const url = await window.ttApi.getServerUrl();
+            if (url) document.getElementById('server-url').value = url;
+        })();
+    </script>
+</body>
+</html>

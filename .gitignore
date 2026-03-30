@@ -1,0 +1,22 @@
+# OS Metadata
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Node modules
+node_modules/
+npm-debug.log
+yarn-error.log
+
+# Build artifacts
+client/dist/
+dist/
+build/
+*.exe
+*.dmg
+*.AppImage
+
+# Server local data
+server/uploads/
+server/timetracker.db
+server/.env
