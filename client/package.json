@@ -19,6 +19,7 @@
     "electron": "^33.2.0",
     "electron-builder": "^25.1.8"
   },
+  "author": "TimeTracker Pro Team",
   "build": {
     "appId": "com.timetracker.pro",
     "productName": "TimeTracker Pro",
@@ -28,11 +29,11 @@
     ],
     "win": {
       "target": "nsis",
-      "icon": "assets/icon.ico"
+      "icon": "assets/icon.png"
     },
     "mac": {
       "target": "dmg",
-      "icon": "assets/icon.icns",
+      "icon": "assets/icon.png",
       "category": "public.app-category.productivity"
     },
     "nsis": {
