@@ -8,8 +8,11 @@ const { DB } = require('./src/database');
 const uploadsDir = path.join(__dirname, 'uploads', 'screenshots');
 if (!fs.existsSync(uploadsDir)) fs.mkdirSync(uploadsDir, { recursive: true });
 
-// Initialize database
-const db = new DB(path.join(__dirname, 'data', 'timetracker.db'));
+require('dotenv').config();
+const db = new DB(process.env.DATABASE_URL || 'postgres://localhost:5432/epochdash');
+db.connect().catch(e => {
+    console.error('Failed to connect to database', e);
+});
 
 // Create Express app
 const app = express();
@@ -51,13 +54,13 @@ const PORT = process.env.PORT || 3847;
 app.listen(PORT, '0.0.0.0', () => {
     console.log(`
 ╔══════════════════════════════════════════════╗
-║          TimeTracker Pro Server v1.0         ║
+║          Epoch Dash Server v1.0         ║
 ║──────────────────────────────────────────────║
 ║  Dashboard:  http://localhost:${PORT}           ║
 ║  API:        http://localhost:${PORT}/api       ║
 ║                                              ║
 ║  Default Admin Login:                        ║
-║    Email:    admin@timetracker.local          ║
+║    Email:    admin@epochdash.local          ║
 ║    Password: admin123                        ║
 ╚══════════════════════════════════════════════╝
     `);

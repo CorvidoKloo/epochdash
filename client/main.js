@@ -101,7 +101,7 @@ function createTray() {
     }
 
     tray = new Tray(trayIcon.isEmpty() ? createDefaultTrayIcon() : trayIcon);
-    tray.setToolTip('TimeTracker Pro');
+    tray.setToolTip('Epoch Dash');
     updateTrayMenu();
 
     tray.on('click', () => {
@@ -158,7 +158,7 @@ function updateTrayMenu(isRunning = false, elapsed = '') {
 
     const menu = Menu.buildFromTemplate(template);
     tray.setContextMenu(menu);
-    tray.setToolTip(isRunning ? `TimeTracker Pro - ${elapsed}` : 'TimeTracker Pro');
+    tray.setToolTip(isRunning ? `Epoch Dash - ${elapsed}` : 'Epoch Dash');
 }
 
 // ── Timer Control from Tray ──
@@ -345,8 +345,8 @@ function initManagers() {
             dialog.showMessageBox(mainWindow || loginWindow, {
                 type: 'warning',
                 title: 'Screen Recording Permission Needed',
-                message: 'TimeTracker Pro needs Screen Recording permission to capture desktop screenshots.',
-                detail: 'Go to System Preferences → Security & Privacy → Privacy → Screen Recording, and enable TimeTracker Pro. Then restart the app.',
+                message: 'Epoch Dash needs Screen Recording permission to capture desktop screenshots.',
+                detail: 'Go to System Preferences → Security & Privacy → Privacy → Screen Recording, and enable Epoch Dash. Then restart the app.',
                 buttons: ['OK']
             });
         }

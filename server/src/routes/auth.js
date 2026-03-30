@@ -7,14 +7,14 @@ module.exports = function(db) {
     const router = express.Router();
 
     // POST /api/auth/login
-    router.post('/login', (req, res) => {
+    router.post('/login', async (req, res) => {
         try {
             const { email, password } = req.body;
             if (!email || !password) {
                 return res.status(400).json({ error: 'Email and password are required' });
             }
 
-            const user = db.getUserByEmail(email);
+            const user = await db.getUserByEmail(email);
             if (!user) {
                 return res.status(401).json({ error: 'Invalid credentials' });
             }
@@ -45,21 +45,20 @@ module.exports = function(db) {
     });
 
     // POST /api/auth/register (admin only)
-    router.post('/register', authMiddleware, adminMiddleware, (req, res) => {
+    router.post('/register', authMiddleware, adminMiddleware, async (req, res) => {
         try {
             const { email, password, name, role } = req.body;
             if (!email || !password || !name) {
                 return res.status(400).json({ error: 'Email, password, and name are required' });
             }
 
-            const existing = db.getUserByEmail(email);
+            const existing = await db.getUserByEmail(email);
             if (existing) {
                 return res.status(409).json({ error: 'Email already exists' });
             }
 
             const hash = bcrypt.hashSync(password, 10);
-            const result = db.createUser(email, hash, name, role || 'user');
-            const user = db.getUserById(result.lastInsertRowid);
+            const user = await db.createUser(email, hash, name, role || 'user');
 
             res.status(201).json(user);
         } catch (err) {
@@ -69,8 +68,8 @@ module.exports = function(db) {
     });
 
     // GET /api/auth/me
-    router.get('/me', authMiddleware, (req, res) => {
-        const user = db.getUserById(req.user.id);
+    router.get('/me', authMiddleware, async (req, res) => {
+        const user = await db.getUserById(req.user.id);
         if (!user) return res.status(404).json({ error: 'User not found' });
         res.json(user);
     });

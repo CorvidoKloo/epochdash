@@ -6,9 +6,9 @@ module.exports = function(db) {
     router.use(authMiddleware);
 
     // GET /api/settings
-    router.get('/', (req, res) => {
+    router.get('/', async (req, res) => {
         try {
-            const settings = db.getSettings();
+            const settings = await db.getSettings();
             res.json(settings);
         } catch (err) {
             res.status(500).json({ error: 'Failed to fetch settings' });
@@ -16,7 +16,7 @@ module.exports = function(db) {
     });
 
     // PUT /api/settings
-    router.put('/', adminMiddleware, (req, res) => {
+    router.put('/', adminMiddleware, async (req, res) => {
         try {
             const allowedKeys = [
                 'screenshots_enabled',
@@ -29,11 +29,11 @@ module.exports = function(db) {
 
             for (const [key, value] of Object.entries(req.body)) {
                 if (allowedKeys.includes(key)) {
-                    db.updateSetting(key, value);
+                    await db.updateSetting(key, value);
                 }
             }
 
-            const settings = db.getSettings();
+            const settings = await db.getSettings();
             res.json(settings);
         } catch (err) {
             res.status(500).json({ error: 'Failed to update settings' });

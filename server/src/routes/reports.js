@@ -6,18 +6,18 @@ module.exports = function(db) {
     router.use(authMiddleware);
 
     // GET /api/reports
-    router.get('/', (req, res) => {
+    router.get('/', async (req, res) => {
         try {
             const { from, to, type, user_id } = req.query;
             const isAdmin = req.user.role === 'admin';
             const targetUser = isAdmin && user_id ? parseInt(user_id) : req.user.id;
 
-            const byProject = db.getReportByProject(targetUser, from, to, isAdmin && !user_id);
-            const byDay = db.getReportByDay(targetUser, from, to, isAdmin && !user_id);
+            const byProject = await db.getReportByProject(targetUser, from, to, isAdmin && !user_id);
+            const byDay = await db.getReportByDay(targetUser, from, to, isAdmin && !user_id);
 
             let byUser = [];
             if (isAdmin) {
-                byUser = db.getReportByUser(from, to);
+                byUser = await db.getReportByUser(from, to);
             }
 
             // Calculate totals
@@ -41,11 +41,11 @@ module.exports = function(db) {
     });
 
     // GET /api/reports/export
-    router.get('/export', (req, res) => {
+    router.get('/export', async (req, res) => {
         try {
             const { from, to } = req.query;
             const isAdmin = req.user.role === 'admin';
-            const entries = db.getTimeEntries(req.user.id, from, to, null, isAdmin);
+            const entries = await db.getTimeEntries(req.user.id, from, to, null, isAdmin);
 
             // Generate CSV
             const headers = ['Date', 'User', 'Project', 'Task', 'Description', 'Start Time', 'End Time', 'Duration (hours)'];

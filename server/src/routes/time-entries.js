@@ -6,11 +6,11 @@ module.exports = function(db) {
     router.use(authMiddleware);
 
     // GET /api/time-entries
-    router.get('/', (req, res) => {
+    router.get('/', async (req, res) => {
         try {
             const { from, to, project_id } = req.query;
             const isAdmin = req.user.role === 'admin';
-            const entries = db.getTimeEntries(req.user.id, from, to, project_id, isAdmin);
+            const entries = await db.getTimeEntries(req.user.id, from, to, project_id, isAdmin);
             res.json(entries);
         } catch (err) {
             res.status(500).json({ error: 'Failed to fetch time entries' });
@@ -18,7 +18,7 @@ module.exports = function(db) {
     });
 
     // POST /api/time-entries (manual entry)
-    router.post('/', (req, res) => {
+    router.post('/', async (req, res) => {
         try {
             const { project_id, task_id, description, start_time, end_time } = req.body;
             if (!start_time || !end_time) {
@@ -32,9 +32,9 @@ module.exports = function(db) {
                 return res.status(400).json({ error: 'end_time must be after start_time' });
             }
 
-            const result = db.createTimeEntry(req.user.id, project_id, task_id, description, start_time);
-            const id = result.lastInsertRowid;
-            db.stopTimeEntry(id, end_time, duration);
+            const result = await db.createTimeEntry(req.user.id, project_id, task_id, description, start_time);
+            const id = result.id;
+            await db.stopTimeEntry(id, end_time, duration);
 
             res.status(201).json({ id, start_time, end_time, duration });
         } catch (err) {
@@ -44,7 +44,7 @@ module.exports = function(db) {
     });
 
     // PUT /api/time-entries/:id
-    router.put('/:id', (req, res) => {
+    router.put('/:id', async (req, res) => {
         try {
             const id = parseInt(req.params.id);
             const isAdmin = req.user.role === 'admin';
@@ -63,7 +63,7 @@ module.exports = function(db) {
                 fields.duration = Math.round((e - s) / 1000);
             }
 
-            db.updateTimeEntry(id, fields, req.user.id, isAdmin);
+            await db.updateTimeEntry(id, fields, req.user.id, isAdmin);
             res.json({ success: true });
         } catch (err) {
             res.status(500).json({ error: 'Failed to update time entry' });
@@ -71,11 +71,11 @@ module.exports = function(db) {
     });
 
     // DELETE /api/time-entries/:id
-    router.delete('/:id', (req, res) => {
+    router.delete('/:id', async (req, res) => {
         try {
             const id = parseInt(req.params.id);
             const isAdmin = req.user.role === 'admin';
-            db.deleteTimeEntry(id, req.user.id, isAdmin);
+            await db.deleteTimeEntry(id, req.user.id, isAdmin);
             res.json({ success: true });
         } catch (err) {
             res.status(500).json({ error: 'Failed to delete time entry' });

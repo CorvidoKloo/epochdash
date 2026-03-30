@@ -1,5 +1,5 @@
 /* ═══════════════════════════════════════════════
-   TimeTracker Pro — Dashboard Application
+   Epoch Dash — Dashboard Application
    SPA Router, API Client, and All Views
    ═══════════════════════════════════════════════ */
 
@@ -176,7 +176,7 @@ const App = {
     },
 
     route() {
-        const hash = window.location.hash.replace('#/', '') || 'timer';
+        const hash = window.location.hash.replace('#/', '') || 'dashboard';
         this.currentPage = hash;
 
         // Update active nav
@@ -190,7 +190,7 @@ const App = {
         }
 
         const content = document.getElementById('content-wrapper');
-        const views = { timer: TimerView, entries: EntriesView, screenshots: ScreenshotsView, projects: ProjectsView, reports: ReportsView, users: UsersView, settings: SettingsView };
+        const views = { dashboard: DashboardView, timer: TimerView, entries: EntriesView, screenshots: ScreenshotsView, projects: ProjectsView, reports: ReportsView, users: UsersView, settings: SettingsView };
 
         if (views[hash]) {
             views[hash].render(content);
@@ -203,6 +203,364 @@ const App = {
         localStorage.removeItem('tt_token');
         localStorage.removeItem('tt_user');
         window.location.href = '/login.html';
+    }
+};
+
+// ═══════════════════════════════════════
+// DASHBOARD OVERVIEW VIEW
+// ═══════════════════════════════════════
+const DashboardView = {
+    async render(container) {
+        const greeting = this.getGreeting();
+        const userName = App.user?.name || 'there';
+
+        container.innerHTML = `
+            <div class="welcome-banner">
+                <h2>${greeting}, ${escapeHtml(userName)} 👋</h2>
+                <p>Here's how your week is shaping up</p>
+                <div class="welcome-quick-actions">
+                    <button class="btn btn-primary" id="dash-start-timer" onclick="window.location.hash='#/timer'">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><polygon points="5 3 19 12 5 21 5 3" fill="currentColor" stroke="none"/></svg>
+                        Start Timer
+                    </button>
+                    <button class="btn btn-secondary" id="dash-add-entry" onclick="DashboardView.openManualEntry()">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                        Add Manual Entry
+                    </button>
+                    <button class="btn btn-secondary" onclick="window.location.hash='#/reports'">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+                        View Reports
+                    </button>
+                </div>
+            </div>
+
+            <div class="stat-grid" id="dash-stats">
+                <div class="stat-card">
+                    <div class="stat-icon blue"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></div>
+                    <div><div class="stat-value" id="dash-total-hours">--</div><div class="stat-label">Hours This Week</div></div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon green"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg></div>
+                    <div><div class="stat-value" id="dash-total-entries">--</div><div class="stat-label">Entries This Week</div></div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon purple"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg></div>
+                    <div><div class="stat-value" id="dash-total-projects">--</div><div class="stat-label">Active Projects</div></div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon orange"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg></div>
+                    <div><div class="stat-value" id="dash-avg-day">--</div><div class="stat-label">Avg / Day</div></div>
+                </div>
+            </div>
+
+            <div class="dashboard-grid">
+                <div class="dashboard-main">
+                    <div class="card">
+                        <div class="card-header">
+                            <h3 class="card-title">📊 Weekly Activity</h3>
+                            <span class="streak-badge" id="dash-streak">🔥 0 day streak</span>
+                        </div>
+                        <div class="heatmap-labels" id="heatmap-labels"></div>
+                        <div class="heatmap-grid" id="heatmap-grid"></div>
+                        <div style="margin-top:16px; display:flex; align-items:center; gap:8px; justify-content:flex-end">
+                            <span style="font-size:11px; color:var(--text-muted)">Less</span>
+                            <div style="width:14px;height:14px;border-radius:3px;background:var(--bg-surface)"></div>
+                            <div style="width:14px;height:14px;border-radius:3px;background:rgba(0,212,255,0.15)"></div>
+                            <div style="width:14px;height:14px;border-radius:3px;background:rgba(0,212,255,0.3)"></div>
+                            <div style="width:14px;height:14px;border-radius:3px;background:rgba(0,212,255,0.5)"></div>
+                            <div style="width:14px;height:14px;border-radius:3px;background:rgba(0,212,255,0.7)"></div>
+                            <span style="font-size:11px; color:var(--text-muted)">More</span>
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <div class="card-header">
+                            <h3 class="card-title">⚡ Recent Activity</h3>
+                        </div>
+                        <ul class="activity-feed" id="dash-activity-feed">
+                            <li class="activity-item"><div class="activity-body"><div class="activity-text" style="color:var(--text-muted)">Loading activity...</div></div></li>
+                        </ul>
+                    </div>
+                </div>
+
+                <div class="dashboard-aside">
+                    <div class="card">
+                        <div class="card-header">
+                            <h3 class="card-title">👥 Team</h3>
+                        </div>
+                        <ul class="team-online-list" id="dash-team-list">
+                            <li class="team-member-item"><div class="team-member-info"><div class="team-member-name" style="color:var(--text-muted)">Loading...</div></div></li>
+                        </ul>
+                    </div>
+
+                    <div class="card">
+                        <div class="card-header">
+                            <h3 class="card-title">🎯 Weekly Goals</h3>
+                        </div>
+                        <div id="dash-goals"></div>
+                    </div>
+                </div>
+            </div>
+        `;
+
+        this.loadData();
+    },
+
+    getGreeting() {
+        const h = new Date().getHours();
+        if (h < 12) return 'Good morning';
+        if (h < 17) return 'Good afternoon';
+        return 'Good evening';
+    },
+
+    async loadData() {
+        try {
+            const from = weekAgoISO();
+            const to = todayISO() + 'T23:59:59';
+
+            const [reports, entries, users] = await Promise.all([
+                API.get(`/reports?from=${from}&to=${to}`),
+                API.get(`/time-entries?from=${from}&to=${to}`),
+                App.user.role === 'admin' ? API.get('/users') : Promise.resolve([])
+            ]);
+
+            // Stats
+            const totalSec = reports.summary?.total_seconds || 0;
+            const totalEntries = reports.summary?.total_entries || 0;
+            const projectCount = reports.by_project?.length || 0;
+            const daysWithData = reports.by_day?.length || 1;
+            const avgPerDay = Math.round(totalSec / Math.max(daysWithData, 1));
+
+            document.getElementById('dash-total-hours').textContent = formatHours(totalSec);
+            document.getElementById('dash-total-entries').textContent = totalEntries;
+            document.getElementById('dash-total-projects').textContent = projectCount;
+            document.getElementById('dash-avg-day').textContent = formatHours(avgPerDay);
+
+            // Heatmap
+            this.renderHeatmap(reports.by_day || []);
+
+            // Streak
+            const streak = this.calcStreak(reports.by_day || []);
+            document.getElementById('dash-streak').textContent = `🔥 ${streak} day streak`;
+
+            // Activity feed
+            this.renderActivity(entries);
+
+            // Team
+            this.renderTeam(users);
+
+            // Goals
+            this.renderGoals(totalSec);
+
+        } catch (err) {
+            console.error('Dashboard load error:', err);
+        }
+    },
+
+    renderHeatmap(byDay) {
+        const grid = document.getElementById('heatmap-grid');
+        const labels = document.getElementById('heatmap-labels');
+        const dayNames = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+
+        // Build day map
+        const dayMap = {};
+        byDay.forEach(d => { dayMap[d.date] = d.total_seconds; });
+
+        const maxSec = Math.max(...byDay.map(d => d.total_seconds || 0), 1);
+        const cells = [];
+        const labelEls = [];
+
+        for (let i = 6; i >= 0; i--) {
+            const d = new Date();
+            d.setDate(d.getDate() - i);
+            const key = d.toISOString().split('T')[0];
+            const sec = dayMap[key] || 0;
+
+            let level = 0;
+            if (sec > 0) level = Math.min(4, Math.ceil((sec / maxSec) * 4));
+
+            const hours = (sec / 3600).toFixed(1);
+            cells.push(`<div class="heatmap-cell level-${level}" title="${dayNames[d.getDay() === 0 ? 6 : d.getDay() - 1]} · ${hours}h"></div>`);
+            labelEls.push(`<div class="heatmap-label">${dayNames[d.getDay() === 0 ? 6 : d.getDay() - 1]}</div>`);
+        }
+
+        grid.innerHTML = cells.join('');
+        labels.innerHTML = labelEls.join('');
+    },
+
+    calcStreak(byDay) {
+        if (!byDay.length) return 0;
+        const dates = new Set(byDay.map(d => d.date));
+        let streak = 0;
+        const d = new Date();
+        while (true) {
+            const key = d.toISOString().split('T')[0];
+            if (dates.has(key)) { streak++; d.setDate(d.getDate() - 1); }
+            else break;
+        }
+        return streak;
+    },
+
+    renderActivity(entries) {
+        const feed = document.getElementById('dash-activity-feed');
+        if (!entries || entries.length === 0) {
+            feed.innerHTML = `<li class="activity-item"><div class="activity-body"><div class="activity-text" style="color:var(--text-muted)">No activity this week. Start tracking!</div></div></li>`;
+            return;
+        }
+
+        const recent = entries.slice(0, 8);
+        feed.innerHTML = recent.map(e => {
+            const proj = e.project_name ? `<strong>${escapeHtml(e.project_name)}</strong>` : '<em>No Project</em>';
+            const dur = formatHours(e.duration);
+            const desc = e.description ? ` — ${escapeHtml(e.description)}` : '';
+            const timeAgo = this.timeAgo(e.end_time || e.start_time);
+
+            return `
+                <li class="activity-item">
+                    <div class="activity-icon timer">⏱️</div>
+                    <div class="activity-body">
+                        <div class="activity-text"><strong>${escapeHtml(e.user_name || 'You')}</strong> tracked <span class="duration-badge">${dur}</span> on ${proj}${desc}</div>
+                        <div class="activity-time">${timeAgo}</div>
+                    </div>
+                </li>
+            `;
+        }).join('');
+    },
+
+    timeAgo(iso) {
+        if (!iso) return '';
+        const diff = (Date.now() - new Date(iso).getTime()) / 1000;
+        if (diff < 60) return 'just now';
+        if (diff < 3600) return `${Math.floor(diff/60)}m ago`;
+        if (diff < 86400) return `${Math.floor(diff/3600)}h ago`;
+        return `${Math.floor(diff/86400)}d ago`;
+    },
+
+    renderTeam(users) {
+        const list = document.getElementById('dash-team-list');
+
+        if (!users || users.length === 0) {
+            // Show just self
+            const u = App.user;
+            list.innerHTML = `
+                <li class="team-member-item">
+                    <div class="team-avatar-wrap">
+                        <div class="user-badge-avatar" style="background:${u.avatar_color || '#7c3aed'}">${u.name.charAt(0).toUpperCase()}</div>
+                        <div class="online-dot active"></div>
+                    </div>
+                    <div class="team-member-info">
+                        <div class="team-member-name">${escapeHtml(u.name)} (You)</div>
+                        <div class="team-member-status tracking">● Online</div>
+                    </div>
+                </li>
+            `;
+            return;
+        }
+
+        list.innerHTML = users.filter(u => u.is_active).map(u => {
+            const isYou = u.id === App.user.id;
+            const statusClass = isYou ? 'active' : 'offline';
+            const statusText = isYou ? '<span class="team-member-status tracking">● Online</span>' : '<span class="team-member-status">Last seen today</span>';
+
+            return `
+                <li class="team-member-item">
+                    <div class="team-avatar-wrap">
+                        <div class="user-badge-avatar" style="background:${u.avatar_color || '#7c3aed'}">${u.name.charAt(0).toUpperCase()}</div>
+                        <div class="online-dot ${statusClass}"></div>
+                    </div>
+                    <div class="team-member-info">
+                        <div class="team-member-name">${escapeHtml(u.name)}${isYou ? ' (You)' : ''}</div>
+                        ${statusText}
+                    </div>
+                </li>
+            `;
+        }).join('');
+    },
+
+    renderGoals(totalSec) {
+        const goalsEl = document.getElementById('dash-goals');
+        const weeklyGoalHours = 40;
+        const dailyGoalHours = 8;
+        const weeklyGoalSec = weeklyGoalHours * 3600;
+        const dailyGoalSec = dailyGoalHours * 3600;
+
+        const weekPct = Math.min(100, Math.round((totalSec / weeklyGoalSec) * 100));
+        const todayPct = Math.min(100, Math.round((totalSec / 7 / dailyGoalSec) * 100));
+
+        goalsEl.innerHTML = `
+            <div class="goal-card">
+                <div class="goal-header">
+                    <span class="goal-label">Weekly Target</span>
+                    <span class="goal-value">${formatHours(totalSec)} / ${weeklyGoalHours}h</span>
+                </div>
+                <div class="progress-bar"><div class="progress-fill" style="width:${weekPct}%"></div></div>
+            </div>
+            <div class="goal-card">
+                <div class="goal-header">
+                    <span class="goal-label">Daily Average</span>
+                    <span class="goal-value">${formatHours(Math.round(totalSec/7))} / ${dailyGoalHours}h</span>
+                </div>
+                <div class="progress-bar"><div class="progress-fill" style="width:${todayPct}%"></div></div>
+            </div>
+        `;
+    },
+
+    openManualEntry() {
+        const projectOpts = App.projects.map(p => `<option value="${p.id}">${escapeHtml(p.name)}</option>`).join('');
+
+        openModal('Add Manual Time Entry', `
+            <form id="manual-entry-form" class="manual-entry-form">
+                <div class="form-group">
+                    <label class="form-label">Project</label>
+                    <select class="form-select" id="me-project">
+                        <option value="">No Project</option>
+                        ${projectOpts}
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Date</label>
+                    <input class="form-input" type="date" id="me-date" value="${todayISO()}">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Start Time</label>
+                    <input class="form-input" type="time" id="me-start" value="09:00">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">End Time</label>
+                    <input class="form-input" type="time" id="me-end" value="17:00">
+                </div>
+                <div class="form-group full-width">
+                    <label class="form-label">Description</label>
+                    <input class="form-input" type="text" id="me-desc" placeholder="What did you work on?">
+                </div>
+                <div class="form-group full-width" style="text-align:right">
+                    <button type="submit" class="btn btn-primary">Save Entry</button>
+                </div>
+            </form>
+        `);
+
+        document.getElementById('manual-entry-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const date = document.getElementById('me-date').value;
+            const start = document.getElementById('me-start').value;
+            const end = document.getElementById('me-end').value;
+            const project_id = document.getElementById('me-project').value || null;
+            const description = document.getElementById('me-desc').value;
+
+            try {
+                await API.post('/time-entries', {
+                    project_id: project_id ? parseInt(project_id) : null,
+                    description,
+                    start_time: `${date}T${start}:00`,
+                    end_time: `${date}T${end}:00`
+                });
+                closeModal();
+                showToast('Time entry added!', 'success');
+                DashboardView.render(document.getElementById('content-wrapper'));
+            } catch (err) {
+                showToast(err.message, 'error');
+            }
+        });
     }
 };
 
