@@ -2,6 +2,7 @@
   "name": "timetracker-pro-client",
   "version": "1.0.0",
   "description": "TimeTracker Pro - Desktop Client",
+  "repository": "https://github.com/RyanBayLegal/timetracker-pro",
   "main": "main.js",
   "scripts": {
     "start": "electron .",
