@@ -27,112 +27,134 @@ class DB {
     }
 
     async initialize() {
-        const client = await this.pool.connect();
+        if (this.initialized) return;
+
         try {
-            await client.query('BEGIN');
-            
-            await client.query(`
-                CREATE TABLE IF NOT EXISTS users (
-                    id SERIAL PRIMARY KEY,
-                    email TEXT UNIQUE NOT NULL,
-                    password_hash TEXT NOT NULL,
-                    name TEXT NOT NULL,
-                    role TEXT DEFAULT 'user' CHECK(role IN ('admin', 'user')),
-                    is_active INTEGER DEFAULT 1,
-                    avatar_color TEXT DEFAULT '#3B82F6',
-                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            // Check if users table exists first (fastest check)
+            const tableCheck = await this.pool.query(`
+                SELECT EXISTS (
+                    SELECT FROM information_schema.tables 
+                    WHERE table_name = 'users'
                 );
-
-                CREATE TABLE IF NOT EXISTS projects (
-                    id SERIAL PRIMARY KEY,
-                    name TEXT NOT NULL,
-                    color TEXT DEFAULT '#3B82F6',
-                    description TEXT DEFAULT '',
-                    is_archived INTEGER DEFAULT 0,
-                    created_by INTEGER REFERENCES users(id),
-                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-                );
-
-                CREATE TABLE IF NOT EXISTS project_members (
-                    project_id INTEGER REFERENCES projects(id) ON DELETE CASCADE,
-                    user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
-                    PRIMARY KEY (project_id, user_id)
-                );
-
-                CREATE TABLE IF NOT EXISTS tasks (
-                    id SERIAL PRIMARY KEY,
-                    project_id INTEGER REFERENCES projects(id) ON DELETE CASCADE,
-                    name TEXT NOT NULL,
-                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-                );
-
-                CREATE TABLE IF NOT EXISTS time_entries (
-                    id SERIAL PRIMARY KEY,
-                    user_id INTEGER NOT NULL REFERENCES users(id),
-                    project_id INTEGER REFERENCES projects(id),
-                    task_id INTEGER REFERENCES tasks(id),
-                    description TEXT DEFAULT '',
-                    start_time TIMESTAMP NOT NULL,
-                    end_time TIMESTAMP,
-                    duration INTEGER DEFAULT 0,
-                    is_running INTEGER DEFAULT 0,
-                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-                );
-
-                CREATE TABLE IF NOT EXISTS screenshots (
-                    id SERIAL PRIMARY KEY,
-                    time_entry_id INTEGER REFERENCES time_entries(id) ON DELETE SET NULL,
-                    user_id INTEGER NOT NULL REFERENCES users(id),
-                    filename TEXT NOT NULL,
-                    thumbnail TEXT,
-                    captured_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-                );
-
-                CREATE TABLE IF NOT EXISTS settings (
-                    key TEXT PRIMARY KEY,
-                    value TEXT NOT NULL
-                );
-
-                CREATE INDEX IF NOT EXISTS idx_time_entries_user ON time_entries(user_id);
-                CREATE INDEX IF NOT EXISTS idx_time_entries_dates ON time_entries(start_time, end_time);
-                CREATE INDEX IF NOT EXISTS idx_screenshots_user ON screenshots(user_id);
-                CREATE INDEX IF NOT EXISTS idx_screenshots_entry ON screenshots(time_entry_id);
             `);
-
-            // Default settings
-            const defaults = {
-                screenshots_enabled: 'true',
-                screenshot_interval: '5',
-                screenshot_blur: 'false',
-                screenshot_quality: 'medium',
-                idle_threshold: '5',
-                notify_users: 'true'
-            };
-
-            for (const [k, v] of Object.entries(defaults)) {
-                await client.query(
-                    'INSERT INTO settings (key, value) VALUES ($1, $2) ON CONFLICT (key) DO NOTHING',
-                    [k, v]
-                );
+            
+            if (tableCheck.rows[0].exists) {
+                this.initialized = true;
+                return;
             }
 
-            // Create default admin if no users
-            const { rows } = await client.query('SELECT COUNT(*) as count FROM users');
-            if (parseInt(rows[0].count) === 0) {
-                const hash = bcrypt.hashSync('admin123', 10);
-                await client.query(
-                    'INSERT INTO users (email, password_hash, name, role, avatar_color) VALUES ($1, $2, $3, $4, $5)',
-                    ['admin@epochdash.local', hash, 'Admin', 'admin', '#8B5CF6']
-                );
-                console.log('✅ Default admin created: admin@epochdash.local / admin123');
-            }
+            console.log('🏗️ Initializing database schema...');
+            const client = await this.pool.connect();
+            try {
+                await client.query('BEGIN');
+                
+                await client.query(`
+                    CREATE TABLE IF NOT EXISTS users (
+                        id SERIAL PRIMARY KEY,
+                        email TEXT UNIQUE NOT NULL,
+                        password_hash TEXT NOT NULL,
+                        name TEXT NOT NULL,
+                        role TEXT DEFAULT 'user' CHECK(role IN ('admin', 'user')),
+                        is_active INTEGER DEFAULT 1,
+                        avatar_color TEXT DEFAULT '#3B82F6',
+                        created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+                    );
 
-            await client.query('COMMIT');
+                    CREATE TABLE IF NOT EXISTS projects (
+                        id SERIAL PRIMARY KEY,
+                        name TEXT NOT NULL,
+                        color TEXT DEFAULT '#3B82F6',
+                        description TEXT DEFAULT '',
+                        is_archived INTEGER DEFAULT 0,
+                        created_by INTEGER REFERENCES users(id),
+                        created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+                    );
+
+                    CREATE TABLE IF NOT EXISTS project_members (
+                        project_id INTEGER REFERENCES projects(id) ON DELETE CASCADE,
+                        user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+                        PRIMARY KEY (project_id, user_id)
+                    );
+
+                    CREATE TABLE IF NOT EXISTS tasks (
+                        id SERIAL PRIMARY KEY,
+                        project_id INTEGER REFERENCES projects(id) ON DELETE CASCADE,
+                        name TEXT NOT NULL,
+                        created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+                    );
+
+                    CREATE TABLE IF NOT EXISTS time_entries (
+                        id SERIAL PRIMARY KEY,
+                        user_id INTEGER NOT NULL REFERENCES users(id),
+                        project_id INTEGER REFERENCES projects(id),
+                        task_id INTEGER REFERENCES tasks(id),
+                        description TEXT DEFAULT '',
+                        start_time TIMESTAMP WITH TIME ZONE NOT NULL,
+                        end_time TIMESTAMP WITH TIME ZONE,
+                        duration INTEGER DEFAULT 0,
+                        is_running INTEGER DEFAULT 0,
+                        created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+                    );
+
+                    CREATE TABLE IF NOT EXISTS screenshots (
+                        id SERIAL PRIMARY KEY,
+                        time_entry_id INTEGER REFERENCES time_entries(id) ON DELETE SET NULL,
+                        user_id INTEGER NOT NULL REFERENCES users(id),
+                        filename TEXT NOT NULL,
+                        thumbnail TEXT,
+                        captured_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+                    );
+
+                    CREATE TABLE IF NOT EXISTS settings (
+                        key TEXT PRIMARY KEY,
+                        value TEXT NOT NULL
+                    );
+
+                    CREATE INDEX IF NOT EXISTS idx_time_entries_user ON time_entries(user_id);
+                    CREATE INDEX IF NOT EXISTS idx_time_entries_dates ON time_entries(start_time, end_time);
+                    CREATE INDEX IF NOT EXISTS idx_screenshots_user ON screenshots(user_id);
+                    CREATE INDEX IF NOT EXISTS idx_screenshots_entry ON screenshots(time_entry_id);
+                `);
+
+                // Default settings
+                const defaults = {
+                    screenshots_enabled: 'true',
+                    screenshot_interval: '5',
+                    screenshot_blur: 'false',
+                    screenshot_quality: 'medium',
+                    idle_threshold: '5',
+                    notify_users: 'true'
+                };
+
+                for (const [k, v] of Object.entries(defaults)) {
+                    await client.query(
+                        'INSERT INTO settings (key, value) VALUES ($1, $2) ON CONFLICT (key) DO NOTHING',
+                        [k, v]
+                    );
+                }
+
+                // Create default admin if no users
+                const { rows } = await client.query('SELECT COUNT(*) as count FROM users');
+                if (parseInt(rows[0].count) === 0) {
+                    const hash = bcrypt.hashSync('admin123', 10);
+                    await client.query(
+                        'INSERT INTO users (email, password_hash, name, role, avatar_color) VALUES ($1, $2, $3, $4, $5)',
+                        ['admin@epochdash.local', hash, 'Admin', 'admin', '#8B5CF6']
+                    );
+                    console.log('✅ Default admin created: admin@epochdash.local / admin123');
+                }
+
+                await client.query('COMMIT');
+                this.initialized = true;
+            } catch (e) {
+                await client.query('ROLLBACK');
+                throw e;
+            } finally {
+                client.release();
+            }
         } catch (e) {
-            await client.query('ROLLBACK');
+            console.error('Database initialization error:', e);
             throw e;
-        } finally {
-            client.release();
         }
     }
 
