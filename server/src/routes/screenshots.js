@@ -132,7 +132,7 @@ module.exports = function(db) {
             });
         } catch (err) {
             console.error('Screenshot S3 base64 upload error:', err);
-            res.status(500).json({ error: 'Failed to upload screenshot to S3' });
+            res.status(500).json({ error: 'Failed to upload screenshot to S3', details: err.message, stack: err.stack, region: process.env.AWS_REGION, bucket: process.env.AWS_S3_BUCKET });
         }
     });
 
