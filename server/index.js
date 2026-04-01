@@ -4,9 +4,11 @@ const cors = require('cors');
 const fs = require('fs');
 const { DB } = require('./src/database');
 
-// Ensure upload directories exist
-const uploadsDir = path.join(__dirname, 'uploads', 'screenshots');
-if (!fs.existsSync(uploadsDir)) fs.mkdirSync(uploadsDir, { recursive: true });
+// Ensure upload directories exist ONLY if not running on Vercel (serverless uses S3)
+if (!process.env.VERCEL) {
+    const uploadsDir = path.join(__dirname, 'uploads', 'screenshots');
+    if (!fs.existsSync(uploadsDir)) fs.mkdirSync(uploadsDir, { recursive: true });
+}
 
 require('dotenv').config();
 const db = new DB(process.env.DATABASE_URL || 'postgres://localhost:5432/epochdash');
@@ -51,8 +53,9 @@ app.use((err, req, res, next) => {
 });
 
 const PORT = process.env.PORT || 3847;
-app.listen(PORT, '0.0.0.0', () => {
-    console.log(`
+if (!process.env.VERCEL) {
+    app.listen(PORT, '0.0.0.0', () => {
+        console.log(`
 ╔══════════════════════════════════════════════╗
 ║          Epoch Dash Server v1.0         ║
 ║──────────────────────────────────────────────║
@@ -63,7 +66,8 @@ app.listen(PORT, '0.0.0.0', () => {
 ║    Email:    admin@epochdash.local          ║
 ║    Password: admin123                        ║
 ╚══════════════════════════════════════════════╝
-    `);
-});
+        `);
+    });
+}
 
 module.exports = app;
