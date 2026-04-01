@@ -426,9 +426,17 @@
 
         // Start timer
         $('start-btn').addEventListener('click', async () => {
+            const btn = $('start-btn');
+            btn.style.opacity = '0.5';
+            btn.style.pointerEvents = 'none';
+
             const projectId = $('project-select').value || null;
             const description = $('description').value || '';
             const result = await window.ttApi.startTimer(projectId, description);
+            
+            btn.style.opacity = '1';
+            btn.style.pointerEvents = 'auto';
+
             if (result.success) {
                 showRunning(result.entry, {});
                 toast('Timer started');
@@ -440,7 +448,15 @@
 
         // Stop timer
         $('stop-btn').addEventListener('click', async () => {
+            const btn = $('stop-btn');
+            btn.style.opacity = '0.5';
+            btn.style.pointerEvents = 'none';
+
             const result = await window.ttApi.stopTimer();
+
+            btn.style.opacity = '1';
+            btn.style.pointerEvents = 'auto';
+
             if (result.success) {
                 resetUI();
                 const dur = result.data.duration;
