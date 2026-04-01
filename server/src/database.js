@@ -3,14 +3,21 @@ const bcrypt = require('bcryptjs');
 
 class DB {
     constructor(connectionString) {
-        // We'll use connectionString or fall back to env vars
-        this.pool = new Pool({
-            connectionString: connectionString || process.env.DATABASE_URL
-        });
+        const url = connectionString || process.env.DATABASE_URL;
+        
+        const poolConfig = {
+            connectionString: url,
+        };
+
+        // Add SSL config if running in production/Vercel or if it's a remote URL
+        if (url && url.includes('supabase.com')) {
+            poolConfig.ssl = { rejectUnauthorized: false };
+        }
+
+        this.pool = new Pool(poolConfig);
         
         this.pool.on('error', (err) => {
             console.error('Unexpected error on idle client', err);
-            process.exit(-1);
         });
     }
 
