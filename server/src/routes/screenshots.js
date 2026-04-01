@@ -132,7 +132,8 @@ module.exports = function(db) {
             });
         } catch (err) {
             console.error('Screenshot S3 base64 upload error:', err);
-            res.status(500).json({ error: 'Failed to upload screenshot to S3', details: err.message, stack: err.stack, region: process.env.AWS_REGION, bucket: process.env.AWS_S3_BUCKET });
+            const keyPreview = process.env.AWS_ACCESS_KEY_ID ? (process.env.AWS_ACCESS_KEY_ID.substring(0, 4) + '...') : 'missing';
+            res.status(500).json({ error: 'Failed to upload screenshot to S3', details: err.message, stack: err.stack, region: process.env.AWS_REGION, bucket: process.env.AWS_S3_BUCKET, keyId: keyPreview });
         }
     });
 
