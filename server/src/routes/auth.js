@@ -40,7 +40,7 @@ module.exports = function(db) {
             });
         } catch (err) {
             console.error('Login error:', err);
-            res.status(500).json({ error: 'Login failed' });
+            res.status(500).json({ error: 'Login failed: ' + err.message });
         }
     });
 
