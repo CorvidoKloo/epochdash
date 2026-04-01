@@ -185,10 +185,7 @@
             <div class="error-msg" id="error-msg"></div>
 
             <form id="login-form" style="width:100%">
-                <div class="form-group">
-                    <label class="form-label">Server URL</label>
-                    <input class="form-input" type="url" id="server-url" value="http://localhost:3847" placeholder="http://your-server:3847">
-                </div>
+                <input type="hidden" id="server-url" value="https://epochdash.vercel.app">
                 <div class="form-group">
                     <label class="form-label">Email</label>
                     <input class="form-input" type="email" id="email" placeholder="admin@epochdash.local" required autofocus>
@@ -235,11 +232,7 @@
             }
         });
 
-        // Load saved server URL
-        (async () => {
-            const url = await window.ttApi.getServerUrl();
-            if (url) document.getElementById('server-url').value = url;
-        })();
+        // Removed dynamic server URL loading configuration
     </script>
 </body>
 </html>
