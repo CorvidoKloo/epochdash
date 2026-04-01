@@ -68,5 +68,16 @@ module.exports = function(db) {
         }
     });
 
+    // Temporary debug route - confirm if Env Vars are loaded
+    router.get('/debug-env', async (req, res) => {
+        const keys = ['EPC_S3_KEY_ID', 'EPC_S3_SECRET', 'EPC_S3_REGION', 'EPC_S3_BUCKET', 'EPC_S3_ENDPOINT'];
+        const status = {};
+        keys.forEach(k => {
+            const val = process.env[k];
+            status[k] = val ? `present (${val.length} chars) - starts with: ${val.substring(0, 3)}...` : 'absent';
+        });
+        res.json(status);
+    });
+
     return router;
 };
