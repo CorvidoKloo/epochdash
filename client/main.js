@@ -165,9 +165,18 @@ function updateTrayMenu(isRunning = false, elapsed = '') {
 async function startTimerFromTray() {
     if (!api || !api.token) return;
     try {
-        await timerManager.start();
+        const data = await api.post('/timer/start', { project_id: null, description: '' });
+        timerManager.setRunning(data.entry, data.settings);
+        
+        if (data.settings.screenshots_enabled === 'true') {
+            const interval = parseInt(data.settings.screenshot_interval || '5') * 60 * 1000;
+            screenshotCapture.start(interval, data.entry.id, data.settings);
+        }
+
         updateTrayMenu(true);
-        if (mainWindow) mainWindow.webContents.send('timer-update', { running: true });
+        if (mainWindow && !mainWindow.isDestroyed()) {
+            mainWindow.webContents.send('timer-update', { running: true });
+        }
     } catch(e) {
         console.error('Start timer error:', e);
     }
@@ -176,10 +185,14 @@ async function startTimerFromTray() {
 async function stopTimerFromTray() {
     if (!api || !api.token) return;
     try {
-        await timerManager.stop();
+        await api.post('/timer/stop');
+        timerManager.clear();
         screenshotCapture.stop();
+        
         updateTrayMenu(false);
-        if (mainWindow) mainWindow.webContents.send('timer-update', { running: false });
+        if (mainWindow && !mainWindow.isDestroyed()) {
+            mainWindow.webContents.send('timer-update', { running: false });
+        }
     } catch(e) {
         console.error('Stop timer error:', e);
     }
