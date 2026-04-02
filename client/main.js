@@ -365,23 +365,41 @@ function initManagers() {
         }
     });
 
-    // Check for running timer
+    // Check for running timer immediately, then poll every 10 seconds
     checkRunningTimer();
+    setInterval(checkRunningTimer, 10000);
 }
 
 async function checkRunningTimer() {
+    if (!api || !api.token) return;
     try {
         const status = await api.get('/timer/status');
         if (status.running) {
-            timerManager.setRunning(status.running, status.settings);
-            if (status.settings.screenshots_enabled === 'true') {
-                const interval = parseInt(status.settings.screenshot_interval || '5') * 60 * 1000;
-                screenshotCapture.start(interval, status.running.id, status.settings);
+            // Update UI if we thought it was stopped, or if it changed id
+            if (!timerManager.isRunning || !timerManager.entry || timerManager.entry.id !== status.running.id) {
+                timerManager.setRunning(status.running, status.settings);
+                if (status.settings.screenshots_enabled === 'true') {
+                    const interval = parseInt(status.settings.screenshot_interval || '5') * 60 * 1000;
+                    screenshotCapture.start(interval, status.running.id, status.settings);
+                }
+                updateTrayMenu(true);
+                if (mainWindow && !mainWindow.isDestroyed()) {
+                    mainWindow.webContents.send('timer-update', { running: true });
+                }
             }
-            updateTrayMenu(true);
+        } else {
+            // Server says nothing is running, stop local tick if necessary
+            if (timerManager.isRunning) {
+                timerManager.clear();
+                screenshotCapture.stop();
+                updateTrayMenu(false);
+                if (mainWindow && !mainWindow.isDestroyed()) {
+                    mainWindow.webContents.send('timer-update', { running: false });
+                }
+            }
         }
     } catch(e) {
-        console.error('Check timer error:', e);
+        // Ignore network errors for background polls
     }
 }
 

@@ -24,9 +24,17 @@ jobs:
       working-directory: ./client
       run: npm install
 
-    - name: Build App
+    - name: Build App (Windows)
+      if: matrix.os == 'windows-latest'
       working-directory: ./client
-      run: npm run build
+      run: npm run build:win
+      env:
+        GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Build App (macOS)
+      if: matrix.os == 'macos-latest'
+      working-directory: ./client
+      run: npm run build:mac
       env:
         GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       

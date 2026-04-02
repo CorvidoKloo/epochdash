@@ -114,6 +114,7 @@ class DB {
                     CREATE INDEX IF NOT EXISTS idx_time_entries_dates ON time_entries(start_time, end_time);
                     CREATE INDEX IF NOT EXISTS idx_screenshots_user ON screenshots(user_id);
                     CREATE INDEX IF NOT EXISTS idx_screenshots_entry ON screenshots(time_entry_id);
+                    CREATE UNIQUE INDEX IF NOT EXISTS idx_single_running_timer ON time_entries(user_id) WHERE is_running = 1;
                 `);
 
                 // Default settings

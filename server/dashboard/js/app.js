@@ -169,10 +169,51 @@ const App = {
         window.addEventListener('hashchange', () => this.route());
         this.loadProjects();
         this.route();
+
+        // Start polling for timer status
+        setInterval(() => this.syncStatus(), 10000);
     },
 
     async loadProjects() {
         try { this.projects = await API.get('/projects'); } catch(e) { this.projects = []; }
+    },
+
+    async syncStatus() {
+        if (!this.token) return;
+        try {
+            const data = await API.get('/timer/status');
+            if (data.running) {
+                if (!App.runningEntry || App.runningEntry.id !== data.running.id) {
+                    App.runningEntry = data.running;
+                    App.timerStartTime = new Date(data.running.start_time);
+                    if (this.currentPage === 'timer') {
+                        TimerView.showRunning(data.running);
+                        TimerView.startTick();
+                    }
+                }
+            } else {
+                if (App.runningEntry) {
+                    App.runningEntry = null;
+                    App.timerStartTime = null;
+                    if (App.timerInterval) clearInterval(App.timerInterval);
+                    if (this.currentPage === 'timer') {
+                        document.getElementById('timer-start-btn').style.display = 'flex';
+                        document.getElementById('timer-stop-btn').style.display = 'none';
+                        const display = document.getElementById('timer-display');
+                        if (display) {
+                            display.classList.remove('running');
+                            display.textContent = '00:00:00';
+                        }
+                        const label = document.getElementById('timer-project-label');
+                        if (label) label.style.display = 'none';
+                        document.getElementById('timer-project').disabled = false;
+                        document.getElementById('timer-desc').disabled = false;
+                        document.getElementById('timer-desc').value = '';
+                        TimerView.loadTodayEntries();
+                    }
+                }
+            }
+        } catch(e) {}
     },
 
     route() {
