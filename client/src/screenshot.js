@@ -83,18 +83,24 @@ class ScreenshotCapture extends EventEmitter {
 
             console.log(`📐 Desktop: ${totalWidth}×${totalHeight} (${displays.length} display(s), scale: ${scaleFactor}x)`);
 
-            // ── 2. Request sources at native resolution ──
-            // Use the actual pixel dimensions (scaled) so we get full resolution
+            // Use the actual pixel dimensions (scaled) so we get full resolution for the stitched panorama
             const captureWidth  = Math.round(totalWidth  * scaleFactor);
             const captureHeight = Math.round(totalHeight * scaleFactor);
 
-            // Cap thumbnail size to avoid memory issues on ultra-wide setups
-            const maxDim = 7680; // 8K max
-            const thumbW = Math.min(captureWidth,  maxDim);
-            const thumbH = Math.min(captureHeight, maxDim);
+            // Request `thumbnailSize` as the maximum native resolution of *any single* display.
+            // Do NOT use the entire bounds (multi-monitor stitched bounds) here, as Mac/Windows 
+            // native APIs will reject ultra-wide thumbnail dimensions and return an empty buffer!
+            let maxDisplayWidth = 0, maxDisplayHeight = 0;
+            for (const d of displays) {
+                maxDisplayWidth = Math.max(maxDisplayWidth, d.bounds.width);
+                maxDisplayHeight = Math.max(maxDisplayHeight, d.bounds.height);
+            }
+            const thumbW = Math.round(maxDisplayWidth * scaleFactor);
+            const thumbH = Math.round(maxDisplayHeight * scaleFactor);
 
             const sources = await desktopCapturer.getSources({
                 types: ['screen'],
+                fetchWindowIcons: false,
                 thumbnailSize: { width: thumbW, height: thumbH }
             });
 

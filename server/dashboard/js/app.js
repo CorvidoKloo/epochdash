@@ -849,8 +849,8 @@ const ScreenshotsView = {
 
             let html = '<div class="screenshot-grid">';
             for (const s of screenshots) {
-                const thumbSrc = s.thumbnail ? `/uploads/${s.thumbnail}` : `/uploads/${s.filename}`;
-                const fullSrc = `/uploads/${s.filename}`;
+                const thumbSrc = `/api/screenshots/${s.id}/image`;
+                const fullSrc = `/api/screenshots/${s.id}/image`;
                 html += `
                     <div class="screenshot-card" onclick="openLightbox('${fullSrc}', '${escapeHtml(s.user_name || '')} — ${formatDateTime(s.captured_at)}')">
                         <img class="screenshot-img" src="${thumbSrc}" alt="Screenshot" loading="lazy" onerror="this.src='data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 300 180%22><rect fill=%22%231a1a30%22 width=%22300%22 height=%22180%22/><text x=%22150%22 y=%2290%22 fill=%22%234a4a6a%22 text-anchor=%22middle%22 font-size=%2214%22>No Preview</text></svg>'">
