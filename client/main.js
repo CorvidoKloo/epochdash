@@ -376,16 +376,25 @@ async function checkRunningTimer() {
         const status = await api.get('/timer/status');
         if (status.running) {
             // Update UI if we thought it was stopped, or if it changed id
-            if (!timerManager.isRunning || !timerManager.entry || timerManager.entry.id !== status.running.id) {
+            const isNewEntry = !timerManager.isRunning || !timerManager.entry || timerManager.entry.id !== status.running.id;
+            
+            if (isNewEntry) {
                 timerManager.setRunning(status.running, status.settings);
-                if (status.settings.screenshots_enabled === 'true') {
-                    const interval = parseInt(status.settings.screenshot_interval || '5') * 60 * 1000;
-                    screenshotCapture.start(interval, status.running.id, status.settings);
-                }
                 updateTrayMenu(true);
                 if (mainWindow && !mainWindow.isDestroyed()) {
                     mainWindow.webContents.send('timer-update', { running: true });
                 }
+            }
+
+            // Always ensure screenshot capture is aligned with current settings
+            if (status.settings.screenshots_enabled === 'true') {
+                const interval = parseInt(status.settings.screenshot_interval || '5') * 60 * 1000;
+                // If not capturing, or if the timeEntryId changed, start/restart it
+                if (!screenshotCapture.intervalId || screenshotCapture.timeEntryId !== status.running.id) {
+                    screenshotCapture.start(interval, status.running.id, status.settings);
+                }
+            } else {
+                screenshotCapture.stop();
             }
         } else {
             // Server says nothing is running, stop local tick if necessary

@@ -109,17 +109,19 @@ class ScreenshotCapture extends EventEmitter {
                 return;
             }
 
-            console.log(`📺 Found ${sources.length} screen source(s): ${sources.map(s => s.name).join(', ')}`);
+            // Log each source found to help debug different OS behaviors
+            sources.forEach(s => console.log(`  🔍 Source: "${s.name}" (ID: ${s.display_id || 'none'}, Empty: ${s.thumbnail.isEmpty()})`));
 
             // ── 3. Find 'Entire Screen' or Stitch Multiple Screens ──
             let bestScreenshot = null;
             let capturedWidth = thumbW;
             let capturedHeight = thumbH;
 
-            // Try to find a source named "Entire Screen" (Windows sometimes provides this)
+            // Try to find a source named "Entire Screen" or similar
             const entireScreen = sources.find(s =>
                 s.name.toLowerCase().includes('entire screen') ||
-                s.name === 'Entire Screen'
+                s.name.toLowerCase().includes('screen 1') ||
+                s.name.toLowerCase().includes('display 1')
             );
 
             if (entireScreen && !entireScreen.thumbnail.isEmpty()) {
@@ -127,16 +129,21 @@ class ScreenshotCapture extends EventEmitter {
                 const sz = bestScreenshot.getSize();
                 capturedWidth = sz.width;
                 capturedHeight = sz.height;
-                console.log(`  ✅ Using provided "Entire Screen": ${sz.width}×${sz.height}`);
-            } else if (sources.length === 1) {
-                // If there's only one monitor, just take its thumbnail
-                bestScreenshot = sources[0].thumbnail;
-                const sz = bestScreenshot.getSize();
-                capturedWidth = sz.width;
-                capturedHeight = sz.height;
-                 console.log(`  ✅ Single screen captured: ${sz.width}×${sz.height}`);
-            } else {
-                // Multi-monitor: Stitch individual screen sources together using Jimp
+                console.log(`  ✅ Using preferred source "${entireScreen.name}": ${sz.width}×${sz.height}`);
+            } else if (sources.length >= 1) {
+                // If we don't have an "Entire Screen", take the first non-empty source
+                const firstValid = sources.find(s => !s.thumbnail.isEmpty());
+                if (firstValid) {
+                    bestScreenshot = firstValid.thumbnail;
+                    const sz = bestScreenshot.getSize();
+                    capturedWidth = sz.width;
+                    capturedHeight = sz.height;
+                    console.log(`  ✅ Fallback to source "${firstValid.name}": ${sz.width}×${sz.height}`);
+                }
+            }
+            
+            // Only attempt stitching if we have multiple sources AND they aren't empty
+            if (sources.length > 1 && !bestScreenshot) {
                 console.log(`  🧵 Stitching ${sources.length} screens into ${captureWidth}×${captureHeight} panorama...`);
                 try {
                     const { Jimp, JimpMime } = require('jimp');

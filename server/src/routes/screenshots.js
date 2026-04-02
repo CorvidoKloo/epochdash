@@ -132,8 +132,22 @@ module.exports = function(db) {
             });
         } catch (err) {
             console.error('Screenshot S3 base64 upload error:', err);
-            const keyPreview = process.env.EPC_S3_KEY_ID ? (process.env.EPC_S3_KEY_ID.substring(0, 4) + '...') : 'missing';
-            res.status(500).json({ error: 'Failed to upload screenshot to S3', details: err.message, stack: err.stack, region: process.env.EPC_S3_REGION, bucket: process.env.EPC_S3_BUCKET, keyId: keyPreview });
+            
+            // Helpful diagnostic info for the user (without leaking secrets)
+            const configInfo = {
+                region: process.env.EPC_S3_REGION || 'default',
+                bucket: process.env.EPC_S3_BUCKET || 'missing',
+                keyID: process.env.EPC_S3_KEY_ID ? (process.env.EPC_S3_KEY_ID.substring(0, 4) + '...') : 'missing',
+                hasSecret: !!process.env.EPC_S3_SECRET,
+                endpoint: !!process.env.EPC_S3_ENDPOINT
+            };
+
+            res.status(500).json({ 
+                error: 'Failed to upload screenshot to S3', 
+                details: err.message,
+                code: err.code || err.name,
+                config: configInfo
+            });
         }
     });
 
